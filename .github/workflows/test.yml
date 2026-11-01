@@ -1,0 +1,25 @@
+name: Test
+
+# Push only, deliberately: pull_request would run fork code on the self-hosted runner,
+# which mounts the host's Docker socket.
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: endpoint
+    steps:
+      - uses: actions/checkout@v4
+      # The runner image ships neither Python nor uv.
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: "0.13.6"
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - run: uv run --frozen pytest
