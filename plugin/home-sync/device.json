@@ -1,0 +1,20 @@
+{
+  "title": "Home progress sync",
+  "description": "Pushes reading sessions to the home server on sleep",
+  "config": { "file": "config.json" },
+  "events": {
+    "reader.session": {
+      "connect": true,
+      "request": {
+        "method": "POST",
+        "url": "{cfg.server}/v1/events/reader-session",
+        "headers": {
+          "Authorization": "Bearer {cfg.key}",
+          "Content-Type": "application/json"
+        },
+        "body": "{\"id\":\"{event.id}\",\"document\":\"{event.document}\",\"start_bp\":{event.start_progress_bp},\"end_bp\":{event.end_progress_bp},\"duration_s\":{event.duration_seconds},\"start_time\":{event.start_time},\"end_time\":{event.end_time},\"ts\":{event.ts}}"
+      },
+      "toast": "Progress synced"
+    }
+  }
+}
