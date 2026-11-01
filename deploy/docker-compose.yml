@@ -1,0 +1,55 @@
+# Reading-progress services for CrossPoint devices. See docs/deploy.md.
+#
+# Unlike the homelab-apps stack, both services publish a port directly instead of
+# sitting behind the homelab-edge Caddy proxy: the device needs plain HTTP on the
+# LAN. The publish address must be chosen, because Docker-published ports bypass
+# ufw and a silent 0.0.0.0 would expose them on every interface.
+name: crosspoint-sync
+
+services:
+  # --- kosync: KOReader sync server ---------------------------------------
+  # 17200 is the plain HTTP listener. 7200 (TLS, self-signed) stays unpublished.
+  kosync:
+    image: koreader/kosync:v2.1.1
+    container_name: kosync
+    restart: unless-stopped
+    environment:
+      # The image defaults this to true. Off except while registering a user.
+      - ENABLE_USER_REGISTRATION=${KOSYNC_ENABLE_USER_REGISTRATION:-false}
+    volumes:
+      - kosync_redis:/var/lib/redis
+      # An image-declared volume. Named so `down` does not orphan one each time.
+      - kosync_redis_logs:/var/log/redis
+    ports:
+      - "${BIND_ADDR:?set BIND_ADDR to a LAN or Tailscale/NetBird IP, see docs/deploy.md}:17200:17200"
+    # Replaces the image's own check, which probes 7200 and not the listener in use.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H 'Accept: application/vnd.koreader.v1+json' http://127.0.0.1:17200/healthcheck | grep -q '\"state\":\"OK\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # --- progress-endpoint: receives sleep-time events from the SD plugin ---
+  progress-endpoint:
+    build:
+      context: ../endpoint
+    container_name: progress-endpoint
+    restart: unless-stopped
+    environment:
+      - PROGRESS_API_KEY=${PROGRESS_API_KEY:?set PROGRESS_API_KEY, see docs/deploy.md}
+    volumes:
+      - progress_data:/data
+    ports:
+      - "${BIND_ADDR:?set BIND_ADDR to a LAN or Tailscale/NetBird IP, see docs/deploy.md}:17201:8000"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  kosync_redis:
+  kosync_redis_logs:
+  progress_data:
