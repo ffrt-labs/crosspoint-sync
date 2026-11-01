@@ -4,10 +4,10 @@ import sqlite3
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
-from progress_endpoint.events import ReaderSession
+from progress_endpoint.events import MAX_BP, ReaderSession
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -32,7 +32,33 @@ SELECT document, end_bp, end_time, ts, received_at, seq FROM (
 WHERE rank = 1;
 """
 
-COLUMNS = "document, end_bp, end_time, ts, received_at"
+SESSION_COLUMNS = [field.name for field in fields(ReaderSession)] + ["received_at"]
+INSERT_SESSION = f"""
+INSERT INTO sessions ({", ".join(SESSION_COLUMNS)})
+VALUES ({", ".join(f":{column}" for column in SESSION_COLUMNS)})
+ON CONFLICT (id) DO NOTHING
+"""
+
+
+@dataclass(frozen=True)
+class Position:
+    """Where a document was left: the row `latest` picks for it."""
+
+    document: str
+    end_bp: int
+    end_time: int
+    ts: int
+    received_at: int
+
+    @property
+    def progress(self) -> float:
+        return self.end_bp / MAX_BP
+
+    def as_json(self) -> dict:
+        return asdict(self) | {"progress": self.progress}
+
+
+POSITION_COLUMNS = ", ".join(field.name for field in fields(Position))
 
 
 class Store:
@@ -57,33 +83,32 @@ class Store:
         """Store a session. Returns False for a replayed id; the first copy wins."""
         with self._connect() as db:
             cursor = db.execute(
-                """
-                INSERT INTO sessions (id, document, start_bp, end_bp, duration_s,
-                                      start_time, end_time, ts, received_at)
-                VALUES (:id, :document, :start_bp, :end_bp, :duration_s,
-                        :start_time, :end_time, :ts, :received_at)
-                ON CONFLICT (id) DO NOTHING
-                """,
+                INSERT_SESSION,
                 asdict(session) | {"received_at": int(time.time())},
             )
             return cursor.rowcount == 1
 
-    def latest(self) -> list[dict]:
+    def latest(self) -> list[Position]:
         """Latest position per document, most recently read first."""
         with self._connect() as db:
             rows = db.execute(
-                f"SELECT {COLUMNS} FROM latest ORDER BY end_time DESC, ts DESC, seq DESC"
+                f"SELECT {POSITION_COLUMNS} FROM latest ORDER BY end_time DESC, ts DESC, seq DESC"
             )
-            return [dict(row) for row in rows]
+            return [Position(**row) for row in rows]
 
-    def latest_for(self, document: str) -> dict | None:
+    def latest_for(self, document: str) -> Position | None:
         with self._connect() as db:
             row = db.execute(
-                f"SELECT {COLUMNS} FROM latest WHERE document = ?", (document,)
+                f"SELECT {POSITION_COLUMNS} FROM latest WHERE document = ?", (document,)
             ).fetchone()
-            return dict(row) if row else None
+            return Position(**row) if row else None
 
     def check(self) -> None:
-        """Raises sqlite3.Error if the database cannot be used."""
+        """Raises sqlite3.Error if the database cannot be read or written."""
         with self._connect() as db:
             db.execute("SELECT 1 FROM sessions LIMIT 1").fetchone()
+            # A write that is rolled back. BEGIN IMMEDIATE alone is not enough: on a WAL
+            # database it succeeds for a read-only file, and only touching a page fails.
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("PRAGMA user_version = 0")
+            db.execute("ROLLBACK")

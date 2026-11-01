@@ -7,6 +7,7 @@ import pytest
 
 from asgi import call
 from conftest import API_KEY, AUTH, DOCUMENT, session
+from progress_endpoint.logs import LOGGER_NAME
 
 URL = "/v1/events/reader-session"
 MAX_INT = 2**53 - 1
@@ -227,7 +228,7 @@ def test_a_replayed_id_keeps_the_first_copy(client):
 
 
 def test_each_discard_is_logged_with_a_reason(client, caplog):
-    with caplog.at_level(logging.INFO, logger="progress_endpoint"):
+    with caplog.at_level(logging.INFO, logger=LOGGER_NAME):
         post(client, session(end_bp=10001))
         post(client, sized(1025))
 

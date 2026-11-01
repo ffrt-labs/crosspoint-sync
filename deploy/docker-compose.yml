@@ -21,7 +21,7 @@ services:
       # An image-declared volume. Named so `down` does not orphan one each time.
       - kosync_redis_logs:/var/log/redis
     ports:
-      - "${BIND_ADDR:?set BIND_ADDR to a LAN or Tailscale/NetBird IP, see docs/deploy.md}:17200:17200"
+      - "${BIND_ADDR:?set BIND_ADDR, see docs/deploy.md}:17200:17200"
     # Replaces the image's own check, which probes 7200 and not the listener in use.
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS -H 'Accept: application/vnd.koreader.v1+json' http://127.0.0.1:17200/healthcheck | grep -q '\"state\":\"OK\"'"]
@@ -41,13 +41,7 @@ services:
     volumes:
       - progress_data:/data
     ports:
-      - "${BIND_ADDR:?set BIND_ADDR to a LAN or Tailscale/NetBird IP, see docs/deploy.md}:17201:8000"
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      - "${BIND_ADDR:?set BIND_ADDR, see docs/deploy.md}:17201:8000"
 
 volumes:
   kosync_redis:

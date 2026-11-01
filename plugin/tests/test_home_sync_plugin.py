@@ -166,13 +166,13 @@ def test_every_variable_is_one_the_firmware_substitutes():
 
 
 def test_url_and_headers_render_without_leftover_variables():
-    config = {"server": "http://192.168.1.10:8000", "key": "sample-key"}
+    config = {"server": "http://192.168.1.10:17201", "key": "sample-key"}
     request = reader_session_handler()["request"]
 
     url = drain_substituted(request["url"], config, SAMPLE_EVENT)
     authorization = drain_substituted(request["headers"]["Authorization"], config, SAMPLE_EVENT)
 
-    assert url == "http://192.168.1.10:8000/v1/events/reader-session"
+    assert url == "http://192.168.1.10:17201/v1/events/reader-session"
     assert authorization == "Bearer sample-key"
 
 

@@ -56,7 +56,7 @@ STUB
 	chmod +x "$SANDBOX/bin/docker"
 	export SANDBOX CALLS FAKE_REDIS FAKE_DATA
 	export PATH="$SANDBOX/bin:$ORIGINAL_PATH"
-	unset STUB_LASTSAVE_STUCK STUB_TAR_FAILS STUB_SQLITE_FAILS BACKUP_SAVE_TIMEOUT PROGRESS_DB_PATH
+	unset STUB_LASTSAVE_STUCK STUB_TAR_FAILS STUB_SQLITE_FAILS BACKUP_SAVE_TIMEOUT
 }
 ORIGINAL_PATH="$PATH"
 
@@ -135,12 +135,6 @@ commands_run_against_this_stack_without_a_tty() {
 		|| fail "compose must be pinned to deploy/ whatever the cwd"
 }
 
-db_path_can_be_overridden() {
-	mv "$FAKE_DATA/progress.db" "$FAKE_DATA/other.sqlite3"
-	PROGRESS_DB_PATH=/data/other.sqlite3 run "$TARGET"
-	assert_status 0
-}
-
 missing_database_fails_rather_than_creating_an_empty_one() {
 	rm "$FAKE_DATA"/progress.db*
 	run "$TARGET"
@@ -204,7 +198,6 @@ check keep_must_be_a_positive_integer
 check snapshot_holds_redis_data_and_a_readable_database
 check redis_is_saved_before_it_is_archived
 check commands_run_against_this_stack_without_a_tty
-check db_path_can_be_overridden
 check missing_database_fails_rather_than_creating_an_empty_one
 check rotation_keeps_the_newest_snapshots
 check rotation_defaults_to_seven

@@ -12,7 +12,7 @@ Copy to the SD card, in /plugins/home-sync/:
 - config.json, made from config.example.json
 
 In config.json, set:
-- server: http://<lan-ip>:<port>, with no trailing slash
+- server: http://<lan-ip>:17201, with no trailing slash
 - key: the sync-only key from the home server
 
 Config limit: flat JSON, 2 KB.

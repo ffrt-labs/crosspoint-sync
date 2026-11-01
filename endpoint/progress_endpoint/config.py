@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-DEFAULT_DB_PATH = "/data/progress.db"
+DB_PATH = Path("/data/progress.db")
 
 
 class ConfigError(Exception):
@@ -20,4 +20,4 @@ class Config:
         api_key = env.get("PROGRESS_API_KEY", "").strip()
         if not api_key:
             raise ConfigError("PROGRESS_API_KEY is empty: refusing to start without a key")
-        return cls(api_key=api_key, db_path=Path(env.get("PROGRESS_DB_PATH") or DEFAULT_DB_PATH))
+        return cls(api_key=api_key, db_path=DB_PATH)

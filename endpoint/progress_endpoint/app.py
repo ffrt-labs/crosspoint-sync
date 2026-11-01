@@ -9,11 +9,12 @@ from starlette.requests import ClientDisconnect
 
 from progress_endpoint.config import Config
 from progress_endpoint.events import InvalidEvent, is_document, parse_session
+from progress_endpoint.logs import LOGGER_NAME
 from progress_endpoint.store import Store
 
 MAX_BODY_BYTES = 1024
 
-logger = logging.getLogger("progress_endpoint")
+logger = logging.getLogger(LOGGER_NAME)
 
 
 async def read_capped(request: Request) -> bytes:
@@ -27,10 +28,6 @@ async def read_capped(request: Request) -> bytes:
     except ClientDisconnect:
         raise InvalidEvent("client disconnected mid-body") from None
     return bytes(body)
-
-
-def present(position: dict) -> dict:
-    return {**position, "progress": position["end_bp"] / 10000}
 
 
 def create_app(config: Config) -> FastAPI:
@@ -65,14 +62,14 @@ def create_app(config: Config) -> FastAPI:
 
     @api.get("/v1/progress")
     def all_progress() -> dict:
-        return {"documents": [present(position) for position in store.latest()]}
+        return {"documents": [position.as_json() for position in store.latest()]}
 
     @api.get("/v1/progress/{document}")
     def one_document(document: str) -> dict:
         position = store.latest_for(document) if is_document(document) else None
         if position is None:
             raise HTTPException(404)
-        return present(position)
+        return position.as_json()
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.include_router(api)

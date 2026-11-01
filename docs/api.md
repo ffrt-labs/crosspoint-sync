@@ -69,8 +69,11 @@ for a discarded event. The server log is the only record of the discard.
 
 - Every session row is kept, which gives a reading history for free.
 - The latest position for a document is the row with the greatest `end_time`, not the
-  greatest progress, so re-reading earlier chapters moves the position back. Ties go to
-  the greater `ts`, then to the most recently received row.
+  greatest progress. Ties go to the greater `ts`, then to the most recently received row.
+- Paging or jumping backwards does not move the position back by itself. Firmware clamps
+  `end_progress_bp` so it never falls within a session, and reverse turns and chapter
+  skips do not count. The position moves back only through a later qualifying session
+  with forward turns that ends earlier in the book.
 - `end_time` is **not** when reading stopped. Firmware removes idle gaps, so it is always
   `start_time + duration_seconds` and can be earlier than the real stop time. It still
   orders sessions correctly, because each session starts after the previous one really
@@ -96,4 +99,5 @@ The same object for one document, or 404 if the document has no sessions.
 ## `GET /healthz`
 
 Unauthenticated, for container healthchecks. Returns 200 with `{"status":"ok"}` when the
-database is reachable, 503 otherwise.
+database can be read and written, 503 otherwise. The write check is rolled back, so it
+stores nothing.

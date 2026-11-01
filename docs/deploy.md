@@ -152,9 +152,6 @@ A failed run exits non-zero, leaves no partial snapshot and prunes nothing. Rota
 touches directories named exactly like a stamp. If `tar` reports that a file changed
 while being read, the run fails; run it again.
 
-If the endpoint's database is not at `/data/progress.db`, set `PROGRESS_DB_PATH` to its
-path inside the container.
-
 **Off-box shipping is out of scope.** These snapshots sit on the same machine as the
 data, so they protect against bad writes and mistakes but not disk loss. Schedule the
 script and copy the target directory elsewhere yourself.
@@ -167,10 +164,10 @@ docker compose down
 docker run --rm -v crosspoint-sync_kosync_redis:/v -v <snapshot>:/b:ro debian:trixie-slim \
   sh -c 'rm -rf /v/* && tar -C /v -xf /b/kosync-redis.tar'
 docker run --rm -v crosspoint-sync_progress_data:/v -v <snapshot>:/b:ro debian:trixie-slim \
-  sh -c 'rm -f /v/progress.db* && cp /b/progress.sqlite3 /v/progress.db'
+  sh -c 'rm -f /v/progress.db* && cp /b/progress.sqlite3 /v/progress.db && chown 10001:10001 /v/progress.db'
 docker compose up -d
 ```
 
 Rehearse this once before relying on it, then repeat the checks in
-[Verifying](#verifying). Check that the container's user can write the restored
-database file.
+[Verifying](#verifying). The endpoint runs as uid 10001, hence the `chown`: if it cannot
+write the restored database, `/healthz` returns 503 and the container reports unhealthy.

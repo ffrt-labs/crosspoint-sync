@@ -10,12 +10,11 @@
 # leaves no snapshot behind and prunes nothing.
 #
 # Environment:
-#   PROGRESS_DB_PATH     database path inside the endpoint container
 #   BACKUP_SAVE_TIMEOUT  seconds to wait for Redis to finish saving (default 60)
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DB_PATH="${PROGRESS_DB_PATH:-/data/progress.db}"
+DB_PATH=/data/progress.db
 SAVE_TIMEOUT="${BACKUP_SAVE_TIMEOUT:-60}"
 
 # Runs inside the endpoint container, which has Python but no sqlite3 CLI. The

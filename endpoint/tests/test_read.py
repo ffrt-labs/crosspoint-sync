@@ -21,10 +21,10 @@ def test_one_document_returns_the_same_object_as_the_list(client):
 
     only = client.get("/v1/progress", headers=AUTH).json()["documents"][0]
     assert latest(client).json() == only
-    assert set(only) == {"document", "progress", "end_bp", "end_time", "ts", "received_at"}
+    assert list(only) == ["document", "end_bp", "end_time", "ts", "received_at", "progress"]
 
 
-def test_rereading_earlier_chapters_moves_the_position_back(client):
+def test_a_later_session_ending_earlier_in_the_book_moves_the_position_back(client):
     post(client, id="00000001-1", end_bp=9000, end_time=1793520754)
     post(client, id="00000001-2", end_bp=1000, end_time=1793530000)
 

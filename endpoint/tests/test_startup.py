@@ -18,11 +18,6 @@ def test_db_path_defaults_under_data():
     assert Config.from_env({"PROGRESS_API_KEY": "k"}).db_path == Path("/data/progress.db")
 
 
-def test_db_path_comes_from_the_environment():
-    env = {"PROGRESS_API_KEY": "k", "PROGRESS_DB_PATH": "/tmp/elsewhere.db"}
-    assert Config.from_env(env).db_path == Path("/tmp/elsewhere.db")
-
-
 def test_a_trailing_newline_is_not_part_of_the_key():
     assert Config.from_env({"PROGRESS_API_KEY": "k\n"}).api_key == "k"
 

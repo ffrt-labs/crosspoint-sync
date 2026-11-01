@@ -5,6 +5,7 @@ import logging
 import sys
 from datetime import UTC, datetime
 
+LOGGER_NAME = "progress_endpoint"
 EXTRA_FIELDS = ("reason", "id", "document")
 
 
@@ -26,7 +27,7 @@ class JsonFormatter(logging.Formatter):
 def configure_logging() -> None:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
-    logger = logging.getLogger("progress_endpoint")
+    logger = logging.getLogger(LOGGER_NAME)
     logger.handlers = [handler]
     logger.setLevel(logging.INFO)
     logger.propagate = False
